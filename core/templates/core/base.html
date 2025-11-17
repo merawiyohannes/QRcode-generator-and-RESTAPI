@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>QR Code Generator</title>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">QR Code Generator</h1>
+            <p class="text-gray-600">Transform your text or URLs into QR codes instantly</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="mb-8">
+            <div class="relative">
+                <input 
+                    id="data_input" 
+                    type="text" 
+                    class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    placeholder="Enter text or URL..."
+                >
+                <div class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <i class="fas fa-link"></i>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2 text-center">Start typing to generate your QR code</p>
+        </div>
+
+        <!-- QR Code Section - Always visible but with different states -->
+        <div id="qr_container" class="transition-all duration-300">
+            <div class="bg-gray-50 rounded-xl p-6 mb-4 border-2 border-dashed border-gray-200">
+                <div class="text-center mb-4">
+                    <i class="fas fa-qrcode text-4xl text-blue-500 mb-2"></i>
+                    <h3 class="text-lg font-semibold text-gray-800">Your QR Code</h3>
+                </div>
+                
+                <!-- Default placeholder -->
+                <div id="placeholder" class="w-48 h-48 mx-auto rounded-lg bg-gray-200 flex items-center justify-center">
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-qrcode text-3xl mb-2"></i>
+                        <p class="text-sm">Enter text to begin</p>
+                    </div>
+                </div>
+                
+                <!-- Actual QR Image - hidden by default -->
+                <img 
+                    id="img_place" 
+                    src="" 
+                    alt="Generated QR Code" 
+                    class="w-48 h-48 mx-auto rounded-lg shadow-md hidden"
+                >
+                
+                <!-- Loading Spinner -->
+                <div id="loading_spinner" class="hidden w-48 h-48 mx-auto rounded-lg bg-gray-100 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        <p class="text-sm text-gray-600">Generating...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Download Button -->
+            <button 
+                id="download_btn"
+                onclick="downloadQr()" 
+                class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+                disabled
+            >
+                <i class="fas fa-download"></i>
+                Download QR Code
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const inputData = document.getElementById('data_input');
+        const img_place = document.getElementById('img_place');
+        const placeholder = document.getElementById('placeholder');
+        const loadingSpinner = document.getElementById('loading_spinner');
+        const downloadBtn = document.getElementById('download_btn');
+
+        let currentRequest = null;
+        let lastProcessedValue = '';
+
+        function downloadQr() {
+            if (!img_place.src || img_place.classList.contains('hidden')) return;
+            
+            const link = document.createElement('a');
+            link.href = img_place.src;
+            link.download = `qrcode-${new Date().getTime()}.png`;
+            link.click();
+        }
+
+        function updateUIState(state) {
+            // states: 'empty', 'loading', 'success'
+            switch(state) {
+                case 'empty':
+                    placeholder.classList.remove('hidden');
+                    img_place.classList.add('hidden');
+                    loadingSpinner.classList.add('hidden');
+                    downloadBtn.disabled = true;
+                    downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    downloadBtn.classList.remove('opacity-100', 'cursor-pointer', 'hover:scale-[1.02]', 'hover:shadow-xl', 'hover:from-blue-600', 'hover:to-blue-700');
+                    break;
+                    
+                case 'loading':
+                    placeholder.classList.add('hidden');
+                    img_place.classList.add('hidden');
+                    loadingSpinner.classList.remove('hidden');
+                    downloadBtn.disabled = true;
+                    downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    downloadBtn.classList.remove('opacity-100', 'cursor-pointer', 'hover:scale-[1.02]', 'hover:shadow-xl', 'hover:from-blue-600', 'hover:to-blue-700');
+                    break;
+                    
+                case 'success':
+                    placeholder.classList.add('hidden');
+                    loadingSpinner.classList.add('hidden');
+                    img_place.classList.remove('hidden');
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    downloadBtn.classList.add('opacity-100', 'cursor-pointer', 'hover:scale-[1.02]', 'hover:shadow-xl', 'hover:from-blue-600', 'hover:to-blue-700');
+                    break;
+            }
+        }
+
+        function generateQR(value) {
+            const trimmedValue = value.trim();
+            
+            // Don't make request if same value or empty
+            if (trimmedValue === lastProcessedValue) return;
+            if (trimmedValue === "") {
+                updateUIState('empty');
+                lastProcessedValue = '';
+                return;
+            }
+
+            // Cancel previous request if still pending
+            if (currentRequest) {
+                currentRequest.abort();
+            }
+
+            updateUIState('loading');
+            lastProcessedValue = trimmedValue;
+
+            // Create new abort controller for this request
+            currentRequest = new AbortController();
+
+            fetch(`/qrGenerator?text=${encodeURIComponent(trimmedValue)}`, {
+                signal: currentRequest.signal
+            })
+                .then(res => res.json())
+                .then(data => {
+                    currentRequest = null;
+                    
+                    if (data.status === 200 && data.img_url) {
+                        img_place.src = `data:image/png;base64,${data.img_url}`;
+                        // Wait for image to load before showing
+                        img_place.onload = () => {
+                            updateUIState('success');
+                        };
+                    } else {
+                        console.error('Failed to generate QR code:', data);
+                        updateUIState('empty');
+                    }
+                })
+                .catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error:', error);
+                        updateUIState('empty');
+                        currentRequest = null;
+                    }
+                });
+        }
+
+        let debounceTimer;
+        inputData.addEventListener('input', function () {
+            const value = inputData.value;
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                generateQR(value);
+            }, 300); // Reduced debounce for more real-time feel
+        });
+
+        // Initialize
+        updateUIState('empty');
+        inputData.focus();
+    </script>
+</body>
+</html>
