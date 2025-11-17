@@ -15,7 +15,7 @@ Just visit the homepage, type your text, and the QR code appears automatically. 
 
 ## For Developers (API)
 
-**Base URL:** `https://.onrender.com`
+**Base URL:** https://qrcode-generator-api-5t87.onrender.com
 
 **Generate QR Code:**
 
@@ -23,7 +23,7 @@ GET /apiEnd/?text=YourTextHere
 
 **Example using curl:**
 ```bash
-curl "https://your-app.onrender.com/apiEnd/?text=Hello%20World"
+curl "https://qrcode-generator-api-5t87.onrender.com/apiEnd/?text=Hello%20World"
 
 Successful Response:
 
