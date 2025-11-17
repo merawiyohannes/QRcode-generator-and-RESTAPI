@@ -8,7 +8,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS')
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = [
+        "https://qrcode-generator-api-5t87.onrender.com",
+    ]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
