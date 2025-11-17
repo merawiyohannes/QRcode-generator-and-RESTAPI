@@ -9,6 +9,6 @@ services:
       - key: DEBUG
         value: "False"
       - key : ALLOWED_HOSTS
-        value : ['.onreder.com']
+        value : ['https://qrcode-generator-api-5t87.onrender.com',]
       - key : SECRET_KEY
         generateValue : true
