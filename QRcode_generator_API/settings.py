@@ -12,7 +12,7 @@ if DEBUG:
     ALLOWED_HOSTS = ["*"]
 else:
     ALLOWED_HOSTS = [
-        "https://qrcode-generator-api-5t87.onrender.com",
+        ".onrender.com",
     ]
 
 INSTALLED_APPS = [
